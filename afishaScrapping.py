@@ -16,7 +16,6 @@ for el in list_elements:
         links.append(ln[0]['href'])
 
 movies = {}
-i = 0
 for url in links:
     response = requests.get(url)
     soup = BeautifulSoup(response.text, 'html.parser')
@@ -85,4 +84,44 @@ for url in links:
     movies[name]['genres'] = all_genres
     movies[name]['rate'] = rate
     movies[name]['actors'] = actors
-    print(movies[name])
+    # print(movies[name])
+
+spark = SparkSession.builder \
+    .appName("load data") \
+    .getOrCreate()
+
+sc = spark.sparkContext
+
+pdDF = pd.DataFrame(movies).transpose()
+movies_df = spark.createDataFrame(pdDF)
+
+
+def films_by_age(age):
+    filtered_mov = movies_df.filter(movies_df['audience'] == age + '+')
+    table_name = 'movies_' + age
+    filtered_mov.createTempView(table_name)
+    sql_table = 'select * from ' + table_name
+    sql_count = 'select count(*) from ' + table_name
+    spark.sql(sql_table).show()
+    print('Number of films with age limit of ' + age + '+ :')
+    spark.sql(sql_count).show()  # number of films
+
+
+films_by_age('6')
+films_by_age('12')
+films_by_age('16')
+
+
+def films_by_country(film_country, translit):
+    filtered_mov = movies_df.filter(movies_df['country'] == film_country)
+    table_name = 'movies_' + translit
+    filtered_mov.createTempView(table_name)
+    sql_table = 'select * from ' + table_name
+    sql_count = 'select count(*) from ' + table_name
+    spark.sql(sql_table).show()
+    print('Number of films with country ' + film_country + ' :')
+    spark.sql(sql_count).show()  # number of films
+
+
+films_by_country('Россия', 'Russia')
+films_by_country('США', 'USA')
