@@ -1,5 +1,7 @@
 from bs4 import BeautifulSoup
 import requests
+from pyspark.sql import SparkSession
+import pandas as pd
 
 url = "https://afisha.tut.by/film/"
 response = requests.get(url)
@@ -35,8 +37,18 @@ for url in links:
     else:
         duration = 'Unknown'
 
-    if soup.find('div', {'class', 'title__labels'}).findAll('span', {'class', 'label'}).count == 1:
-        audience = soup.find('div', {'class', 'title__labels'}).findAll('span', {'class', 'label'})[1].text
+    container = soup.find('div', {'class': 'title__labels'})
+    if len(container.findAll('span', {'class', 'label'})) != 0:
+        if len(container.findAll('span', {'class', 'label'})) == 1:
+            for element in container.findAll('span', {'class', 'label'}):
+                if 'Премьера' not in element.text:
+                    audience = container.find('span', {'class', 'label'}).text
+                else:
+                    audience = 'Unknown'
+        else:
+            h = container.findAll('span', {'class', 'label'})[0]
+            h.decompose()
+            audience = container.find('span', {'class', 'label'}).text
     else:
         audience = 'Unknown'
 
