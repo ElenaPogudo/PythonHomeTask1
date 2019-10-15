@@ -27,9 +27,9 @@ for url in links:
         year = 'Unknown'
 
     if soup.find('td', {'class', 'author'}) is not None:
-        country = soup.find('td', {'class', 'author'}).text
+        country = soup.find('td', {'class', 'author'}).text.split(', ')
     else:
-        country = 'Unknown'
+        country = ['Unknown']
 
     if soup.find('td', {'class', 'duration'}) is not None:
         duration = soup.find('td', {'class', 'duration'}).text
@@ -86,6 +86,21 @@ for url in links:
     movies[name]['actors'] = actors
     # print(movies[name])
 
+all_audience = []
+for name in movies:
+    if movies[name]['audience'] in all_audience:
+        continue
+    else:
+        all_audience.append(movies[name]['audience'])
+
+all_countries = []
+for name in movies:
+    for country in movies[name]['country']:
+        if country in all_countries:
+            continue
+        else:
+            all_countries.append(country)
+
 spark = SparkSession.builder \
     .appName("load data") \
     .getOrCreate()
@@ -97,31 +112,27 @@ movies_df = spark.createDataFrame(pdDF)
 
 
 def films_by_age(age):
-    filtered_mov = movies_df.filter(movies_df['audience'] == age + '+')
-    table_name = 'movies_' + age
-    filtered_mov.createTempView(table_name)
-    sql_table = 'select * from ' + table_name
-    sql_count = 'select count(*) from ' + table_name
-    spark.sql(sql_table).show()
-    print('Number of films with age limit of ' + age + '+ :')
-    spark.sql(sql_count).show()  # number of films
+    filtered_mov = movies_df.filter(movies_df['audience'] == age)
+    return filtered_mov.count()
 
 
-films_by_age('6')
-films_by_age('12')
-films_by_age('16')
+age_table = []
+for current_age in all_audience:
+    age_table.append([current_age, films_by_age(current_age)])
+ages = spark.createDataFrame(age_table, ('age', 'count'))
+ages.show()
 
 
-def films_by_country(film_country, translit):
-    filtered_mov = movies_df.filter(movies_df['country'] == film_country)
-    table_name = 'movies_' + translit
-    filtered_mov.createTempView(table_name)
-    sql_table = 'select * from ' + table_name
-    sql_count = 'select count(*) from ' + table_name
-    spark.sql(sql_table).show()
-    print('Number of films with country ' + film_country + ' :')
-    spark.sql(sql_count).show()  # number of films
+def films_by_country(film_country):
+    count_countries = 0
+    for film in movies:
+        if film_country in movies[film]['country']:
+            count_countries += 1
+    return count_countries
 
 
-films_by_country('Россия', 'Russia')
-films_by_country('США', 'USA')
+country_table = []
+for current_country in all_countries:
+    country_table.append([current_country, films_by_country(current_country)])
+countries = spark.createDataFrame(country_table, ('country', 'count'))
+countries.show()
