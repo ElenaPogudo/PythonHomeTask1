@@ -84,7 +84,6 @@ for url in links:
     movies[name]['genres'] = all_genres
     movies[name]['rate'] = rate
     movies[name]['actors'] = actors
-    # print(movies[name])
 
 all_audience = []
 for name in movies:
@@ -113,3 +112,4 @@ movies_df = spark.createDataFrame(pdDF)
 
 movies_df.groupBy('audience').count().sort('count', ascending=False).show()
 movies_df.groupBy('country').count().sort('count', ascending=False).show()
+movies_df.groupBy('actors').count().sort('count', ascending=False).show()
