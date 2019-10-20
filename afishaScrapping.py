@@ -52,11 +52,11 @@ for url in links:
         audience = 'Unknown'
 
     if soup.find('td', {'class', 'genre'}) is not None:
-        all_genres = ""
+        all_genres = ''
         for genre in soup.find('td', {'class', 'genre'}).findAll('p'):
             all_genres = all_genres + genre.text + ' '
     else:
-        genres = 'Unknown'
+        all_genres = 'Unknown'
 
     if soup.find('span', {'class', 'rating-big__value'}) is not None:
         rate = soup.find('span', {'class', 'rating-big__value'}).text
@@ -111,28 +111,5 @@ pdDF = pd.DataFrame(movies).transpose()
 movies_df = spark.createDataFrame(pdDF)
 
 
-def films_by_age(age):
-    filtered_mov = movies_df.filter(movies_df['audience'] == age)
-    return filtered_mov.count()
-
-
-age_table = []
-for current_age in all_audience:
-    age_table.append([current_age, films_by_age(current_age)])
-ages = spark.createDataFrame(age_table, ('age', 'count'))
-ages.show()
-
-
-def films_by_country(film_country):
-    count_countries = 0
-    for film in movies:
-        if film_country in movies[film]['country']:
-            count_countries += 1
-    return count_countries
-
-
-country_table = []
-for current_country in all_countries:
-    country_table.append([current_country, films_by_country(current_country)])
-countries = spark.createDataFrame(country_table, ('country', 'count'))
-countries.show()
+movies_df.groupBy('audience').count().sort('count', ascending=False).show()
+movies_df.groupBy('country').count().sort('count', ascending=False).show()
