@@ -2,9 +2,6 @@ from bs4 import BeautifulSoup
 import requests
 from pyspark.sql import SparkSession
 import pandas as pd
-from PIL import Image
-import matplotlib.pyplot as plt
-from wordcloud import WordCloud, STOPWORDS
 
 url = "https://afisha.tut.by/film/"
 response = requests.get(url)
@@ -96,40 +93,3 @@ sc = spark.sparkContext
 
 pdDF = pd.DataFrame(movies).transpose()
 movies_df = spark.createDataFrame(pdDF)
-
-age_table = movies_df.groupBy('audience').count().sort('count', ascending=False)
-country_table = movies_df.groupBy('country').count().sort('count', ascending=False)
-actors_table = movies_df.groupBy('actors').count().sort('count', ascending=False)
-
-pandas_df_age_table = age_table.toPandas()
-pandas_df_country_table = country_table.toPandas()
-pandas_df_actors_table = actors_table.toPandas()
-
-df_age = pd.DataFrame(pandas_df_age_table)
-plot = df_age.plot.pie(labels=df_age.audience, y='count', figsize=(10, 10), autopct='%1.1f%%', title='Movies by age')
-plt.savefig('audience_pieplot.png')
-im = Image.open('audience_pieplot.png')
-im.show()
-
-df_country = pd.DataFrame(pandas_df_country_table)
-ax = df_country.plot.bar(x='country', y='count', rot=20, title='Movies by country', fontsize=6)
-plt.savefig('country_barplot.png')
-im = Image.open('country_barplot.png')
-im.show()
-
-text = pandas_df_actors_table
-wordcloud = WordCloud(
-    width=5000,
-    height=2000,
-    background_color='white',
-    stopwords=STOPWORDS).generate(str(text))
-fig = plt.figure(
-    figsize=(40, 30),
-    facecolor='k',
-    edgecolor='k')
-plt.imshow(wordcloud, interpolation='bilinear')
-plt.axis('off')
-plt.tight_layout(pad=0)
-plt.savefig('actors_wordcloudplot.png')
-im = Image.open('actors_wordcloudplot.png')
-im.show()
